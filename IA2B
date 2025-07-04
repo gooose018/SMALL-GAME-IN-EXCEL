@@ -1,4 +1,4 @@
-// FOR WORKSHEET
+'FOR WORKSHEET
 Private Sub CommandButton1_Click()
     Call StartGame
 End Sub
@@ -6,7 +6,7 @@ Private Sub CommandButton2_Click()
     Call EndGame
 End Sub
 
-// ADD MODULE
+'ADD MODULE
 Option Explicit
 
 Dim secretNumber As String
