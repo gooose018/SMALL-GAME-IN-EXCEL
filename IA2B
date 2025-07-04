@@ -1,0 +1,132 @@
+// FOR WORKSHEET
+Private Sub CommandButton1_Click()
+    Call StartGame
+End Sub
+Private Sub CommandButton2_Click()
+    Call EndGame
+End Sub
+
+// ADD MODULE
+Option Explicit
+
+Dim secretNumber As String
+Dim times As Integer
+
+Function GeneraterandomNum() As String
+    Dim nums As Object
+    Dim i As Integer, num As Integer
+    Dim result As String
+    
+    Set nums = CreateObject("Scripting.Dictionary")
+    
+    Do While nums.Count < 4
+        num = Int(Rnd() * 10)
+        If Not nums.Exists(num) Then
+            nums.Add num, True
+            result = result & num
+        End If
+    Loop
+    
+    GeneraterandomNum = result
+End Function
+
+Function ValidInput(inputStr As String) As Boolean
+    Dim i As Integer, j As Integer
+    If Len(inputStr) <> 4 Then
+        MsgBox "Please input 4 digits！", vbExclamation
+        ValidInput = False
+        Exit Function
+    End If
+    
+    If Not IsNumeric(inputStr) Then
+        MsgBox "Please type for DIGITS！", vbExclamation
+        ValidInput = False
+        Exit Function
+    End If
+
+    For i = 1 To 3
+        For j = i + 1 To 4
+            If Mid(inputStr, i, 1) = Mid(inputStr, j, 1) Then
+                MsgBox "The digits can't be repeated！", vbExclamation
+                ValidInput = False
+                Exit Function
+            End If
+        Next j
+    Next i
+    
+    ValidInput = True
+End Function
+
+Function AB(guess As String) As String
+    Dim aCount As Integer, bCount As Integer
+    Dim i As Integer, j As Integer
+    
+    aCount = 0
+    bCount = 0
+    
+    For i = 1 To 4
+        For j = 1 To 4
+            If Mid(guess, i, 1) = Mid(secretNumber, j, 1) Then
+                If i = j Then
+                    aCount = aCount + 1
+                Else
+                    bCount = bCount + 1
+                End If
+            End If
+        Next j
+    Next i
+    
+    AB = aCount & "A" & bCount & "B"
+End Function
+
+Sub StartGame()
+    Dim ws As Worksheet
+    Set ws = ThisWorkbook.Sheets("1A2B")
+    secretNumber = GeneraterandomNum()
+    MsgBox "Game Start! Input 4 digits.", vbInformation
+    ws.Range("A1:B100").ClearContents
+    ws.Cells(1, 1).Value = "Guess"
+    ws.Cells(1, 2).Value = "Result"
+    GuessNumber
+End Sub
+
+Sub GuessNumber()
+    Dim guess As String
+    Dim result As String
+    Dim ws As Worksheet
+    Dim nextRow As Long
+
+    Set ws = ThisWorkbook.Sheets("1A2B")
+    times = 0
+    Do
+        guess = InputBox("請輸入 4 位不重複數字：")
+        If guess = "" Then Exit Sub
+        
+        If ValidInput(guess) Then
+            times = times + 1
+            result = AB(guess)
+            MsgBox " " & result, vbInformation
+            
+            If ws.Cells(2, 1).Value = "" Then
+                nextRow = 2
+            Else
+                nextRow = ws.Cells(ws.Rows.Count, 1).End(xlUp).Row + 1
+            End If
+            
+            ws.Cells(nextRow, 1).Value = guess
+            ws.Cells(nextRow, 2).Value = result
+            If result = "4A0B" Then
+                MsgBox "Bingo! You takes " & times & " times to guess."
+                Exit Sub
+            End If
+        End If
+    Loop
+End Sub
+
+Sub EndGame()
+    Dim ws As Worksheet
+    Set ws = ThisWorkbook.Sheets("1A2B")
+    secretNumber = GeneraterandomNum()
+    MsgBox "GAME OVER！The target num is: " & secretNumber, vbInformation
+    ws.Range("A1:B100").ClearContents
+End Sub
