@@ -1,0 +1,203 @@
+'FOR WORKSHEET
+Private Sub CommandButton1_Click()
+     Call InitMinesweeper
+ End Sub
+
+ Private Sub CommandButton2_Click()
+     Call SelfCleanboard
+End Sub
+Private Sub WorkSheet_SelectionChange(ByVal Target As Range)
+    If mapSize = 0 Then Exit Sub
+     If Target.Cells.Count > 1 Then Exit Sub
+     Dim row As Integer, column As Integer
+     Dim unicodeString As String
+     row = Target.row
+     column = Target.column
+     unicodeString = ChrW(&H2691)
+     If row <= mapSize And column <= mapSize Then
+         If revealed(row, column) Then Exit Sub
+         If Cells(row, column).Value = unicodeString Then Exit Sub
+         If mineField(row, column) Then
+             Cells(row, column).Value = "X"
+             Cells(row, column).Interior.Color = RGB(255, 0, 0)
+             MsgBox "GAME OVER!!! Mines explode."
+             Call Show
+             mapSize = 0
+         Else
+             Call RevealCell(row, column)
+         End If
+     End If
+ End Sub
+
+Private Sub WorkSheet_BeforeRightClick(ByVal Target As Range, Cancel As Boolean)
+     If mapSize = 0 Then Exit Sub
+     If Target.Cells.Count > 1 Then Exit Sub
+     If Intersect(Target, Range(Cells(1, 1), Cells(mapSize, mapSize))) Is Nothing Then Exit Sub
+    
+     Cancel = True
+     Dim row As Integer, column As Integer
+     Dim unicodeString As String
+     row = Target.row
+     column = Target.column
+     unicodeString = ChrW(&H2691)
+    
+     If revealed(row, column) Then Exit Sub
+         With Cells(row, column)
+             If .Value = unicodeString Then
+                 .Value = ""
+                 .Interior.Color = RGB(255, 255, 255)
+             Else
+                 .Value = unicodeString
+                 .Interior.Color = RGB(255, 255, 180)
+             End If
+         End With
+End Sub
+
+'ADD MODULE
+Public mineField() As Boolean
+Public mineCountField() As Integer
+Public revealed() As Boolean
+Public mapSize As Integer
+
+Sub InitMinesweeper()
+     Dim choice As String
+     choice = InputBox("Map size U WANT: Please type 5,8, or 10", "CHOOSE MAP SIZE")
+   
+     If choice <> "5" And choice <> "8" And choice <> "10" Then
+         MsgBox "Input error, to restart the game!"
+         Exit Sub
+     End If
+     mapSize = CInt(choice)
+     ReDim mineField(1 To mapSize, 1 To mapSize)
+     ReDim mineCountField(1 To mapSize, 1 To mapSize)
+     ReDim revealed(1 To mapSize, 1 To mapSize)
+  
+     Call Cleanboard
+     Call PlaceMines
+     Call CountNeighborMines
+     MsgBox "Mines set over, Game Start!"
+End Sub
+ Sub Cleanboard()
+     Dim i As Integer, j As Integer
+     For i = 1 To 10
+         For j = 1 To 10
+             Cells(i, j).Value = ""
+             Cells(i, j).Interior.Color = RGB(255, 255, 255)
+         Next j
+     Next i
+End Sub
+Sub SelfCleanboard()
+     Dim i As Integer, j As Integer, decision As String
+     decision = InputBox("Sure To Clean the BOARD?", "Warning (Y/N)")
+     If decision <> "Y" Then
+         Exit Sub
+     End If
+     For i = 1 To 10
+         For j = 1 To 10
+             Cells(i, j).Value = ""
+             Cells(i, j).Interior.Color = RGB(255, 255, 255)
+         Next j
+     Next i
+ End Sub
+ Sub PlaceMines()
+     Dim i As Integer, row As Integer, column As Integer
+     Dim mineTotal As Integer
+  
+     Select Case mapSize
+         Case 5
+             mineTotal = 10
+         Case 8
+             mineTotal = 15
+         Case 10
+             mineTotal = 20
+     End Select
+     Randomize
+     For i = 1 To mineTotal
+         Do
+             row = Int(Rnd() * mapSize) + 1
+             column = Int(Rnd() * mapSize) + 1
+         Loop While mineField(row, column) = True
+         mineField(row, column) = True
+     Next i
+ End Sub
+
+ Sub CountNeighborMines()
+     Dim i As Integer, j As Integer, row As Integer, column As Integer
+     For i = 1 To mapSize
+         For j = 1 To mapSize
+             If Not mineField(i, j) Then
+                 For row = i - 1 To i + 1
+                     For column = j - 1 To j + 1
+                         If row >= 1 And row <= mapSize And column >= 1 And column <= mapSize Then
+                             If mineField(row, column) Then
+                                 mineCountField(i, j) = mineCountField(i, j) + 1
+                             End If
+                         End If
+                     Next column
+                 Next row
+             End If
+         Next j
+     Next i
+End Sub
+
+Sub RevealCell(row As Integer, column As Integer)
+     If row < 1 Or row > mapSize Or column < 1 Or column > mapSize Then Exit Sub
+     If revealed(row, column) Then Exit Sub
+   
+     revealed(row, column) = True
+    
+     Cells(row, column).Value = mineCountField(row, column)
+     Cells(row, column).Interior.Color = RGB(200, 255, 200)
+   
+     If mineCountField(row, column) = 0 Then
+         Dim dr As Integer, dc As Integer
+         For dr = -1 To 1
+             For dc = -1 To 1
+                 If Not (dr = 0 And dc = 0) Then
+                     Call RevealCell(row + dr, column + dc)
+                 End If
+             Next dc
+         Next dr
+     End If
+     Call CheckWin
+End Sub
+
+Sub Show()
+     Dim i As Integer, j As Integer
+     For i = 1 To mapSize
+         For j = 1 To mapSize
+             If mineField(i, j) Then
+                 Cells(i, j).VerticalAlignment = xlCenter
+                 Cells(i, j).HorizontalAlignment = xlCenter
+                 Cells(i, j).Value = "X"
+                 Cells(i, j).Interior.Color = RGB(255, 200, 200)
+             Else
+                 Cells(i, j).VerticalAlignment = xlCenter
+                 Cells(i, j).HorizontalAlignment = xlCenter
+                 Cells(i, j).Value = mineCountField(i, j)
+                 Cells(i, j).Interior.Color = RGB(220, 255, 220)
+             End If
+         Next j
+     Next i
+End Sub
+
+Sub CheckWin()
+     Dim i As Integer, j As Integer, safe As Integer, reveal As Integer
+     safe = 0
+     reveal = 0
+    
+     For i = 1 To mapSize
+         For j = 1 To mapSize
+             If Not mineField(i, j) Then safe = safe + 1
+             If revealed(i, j) Then reveal = reveal + 1
+         Next j
+     Next i
+    
+     If reveal = safe Then
+         Call Show
+         MsgBox "YOU WIN!!!"
+         mapSize = 0
+         Call Cleanboard
+     End If
+End Sub
+
